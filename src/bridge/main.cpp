@@ -1,6 +1,9 @@
 #include "main.hpp"
-#include "cxx.hpp"
-#include <string>
+#include "EuroScopePlugIn.hpp"
+
+#define ITEM_STRING_SIZE 16
+
+EsPlugin *es_plugin = NULL;
 
 EsPlugin::EsPlugin(void)
     : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, PLUGIN_NAME, PLUGIN_VERSION,
@@ -24,12 +27,40 @@ void EsPlugin::OnFunctionCall(int FunctionId, const char *ItemString, POINT Pt,
   }
 }
 
-void EsPlugin::handle_checkfp() {
-  int c = add(2, 4);
-  std::string test = std::to_string(c);
+void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan FlightPlan,
+                            EuroScopePlugIn::CRadarTarget RadarTarget,
+                            int ItemCode, int TagData, char sItemString[16],
+                            int *pColorCode, COLORREF *pRGB,
+                            double *pFontSize) {
+  switch (ItemCode) {
+  case TAG_ITEM_FPCHECK: {
+    if (!FlightPlan.IsValid()) {
+      return;
+    }
+    int32_t rfl = FlightPlan.GetFinalAltitude();
+    const char *typ = FlightPlan.GetFlightPlanData().GetPlanType();
 
-  this->DisplayUserMessage(PLUGIN_NAME, nullptr, test.c_str(), true, true,
-                           false, false, false);
+    try {
+      check_flightplan(rfl);
+    } catch (rust::Error e) {
+      strncpy_s(sItemString, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
+      *pColorCode = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
+      return;
+    }
+
+    strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
+    *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
+
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+void EsPlugin::handle_checkfp() {
+  this->DisplayUserMessage(PLUGIN_NAME, nullptr, "test", true, true, false,
+                           false, false);
 }
 
 void __declspec(dllexport)

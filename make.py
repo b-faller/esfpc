@@ -6,24 +6,19 @@ VC_STARTUP_SCRIPT = Path(
 
 BASE_PATH = Path().cwd()
 
-INCLUDE_PATH = BASE_PATH / "include/"
-CXX_HEADER = INCLUDE_PATH / "cxx.hpp"
-CXX_SOURCE = INCLUDE_PATH / "cxx.cpp"
+INCLUDE_PATH = BASE_PATH / "include"
+TARGET_ARCH = BASE_PATH / "target/i686-pc-windows-msvc"
+INCLUDE_CXX_PATH = TARGET_ARCH / "cxxbridge"
 
 RS_SOURCE = BASE_PATH / "src/lib.rs"
 CPP_SOURCE = BASE_PATH / "src/bridge/main.cpp"
+CXX_SOURCE = TARGET_ARCH / "cxxbridge/esfpc/src/lib.rs.cc"
 
 EUROSCOPE_LIB = BASE_PATH / "lib/EuroScopePlugInDll.lib"
-RS_DLL = BASE_PATH / "target/i686-pc-windows-msvc/release/esfpc.lib"
+RS_DLL = TARGET_ARCH / "release/esfpc.lib"
 
 OUTPUT_PATH = BASE_PATH / "build"
 OUTPUT_DLL = OUTPUT_PATH / "esfpc.dll"
-
-
-def generate_cxx_sources():
-    subprocess.run(["cxxbridge", RS_SOURCE,
-                   "--header", "--output", CXX_HEADER])
-    subprocess.run(["cxxbridge", RS_SOURCE, "--output", CXX_SOURCE])
 
 
 def compile_rust():
@@ -34,7 +29,7 @@ def compile_cpp():
     if not OUTPUT_PATH.exists():
         OUTPUT_PATH.mkdir()
     status = subprocess.run(
-        f"\"{VC_STARTUP_SCRIPT}\" x86 && cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" /arch:IA32 /LD -I \"{INCLUDE_PATH}\" /link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"", shell=True, capture_output=True, cwd=OUTPUT_PATH)
+        f"\"{VC_STARTUP_SCRIPT}\" x86 && cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" /arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" /link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"", shell=True, capture_output=True, cwd=OUTPUT_PATH)
 
     print(status.stdout.decode("utf8"))
     print(status.stderr.decode("utf8"))
@@ -43,7 +38,6 @@ def compile_cpp():
 
 
 def build():
-    generate_cxx_sources()
     compile_rust()
     compile_cpp()
 
