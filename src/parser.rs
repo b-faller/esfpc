@@ -109,8 +109,7 @@ mod tests {
                 ))),
             ))),
         ));
-        let parsed =
-            parse("true != ((\"test\" != \"notest\") == ((123 < 10) && (!true)))").unwrap();
+        let parsed = parse("true != (('test' != 'notest') == ((123 < 10) && (!true)))").unwrap();
 
         assert_eq!(expected_expr, parsed);
     }
