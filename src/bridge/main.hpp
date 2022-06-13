@@ -37,8 +37,12 @@ public:
                             int ItemCode, int TagData, char sItemString[16],
                             int *pColorCode, COLORREF *pRGB, double *pFontSize);
 
+  void handle_fpcheck(EuroScopePlugIn::CFlightPlan FlightPlan,
+                      char sItemString[16], int *pColorCode);
   void handle_checkfp();
 };
+
+ffi::FlightRule get_flight_rule(const char *c_rule);
 
 void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **);
 void __declspec(dllexport) EuroScopePlugInExit(void);

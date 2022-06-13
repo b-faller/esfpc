@@ -6,7 +6,7 @@ mod parser;
 
 use ast::eval;
 
-#[cxx::bridge]
+#[cxx::bridge(namespace = "ffi")]
 mod ffi {
     #[derive(Debug)]
     enum FpCheckResult {
@@ -17,12 +17,26 @@ mod ffi {
         Navigation,
     }
 
+    #[derive(Debug)]
+    enum FlightRule {
+        Vfr,
+        Ifr,
+        Yankee,
+        Zulu,
+    }
+
+    #[derive(Debug)]
+    struct FlightPlan {
+        rule: FlightRule,
+        rfl: i32,
+    }
+
     extern "Rust" {
-        fn check_flightplan(rfl: i32) -> Result<FpCheckResult>;
+        fn check_flightplan(fp: FlightPlan) -> Result<FpCheckResult>;
     }
 }
 
-pub fn check_flightplan(rfl: i32) -> Result<ffi::FpCheckResult, &'static str> {
+pub fn check_flightplan(fp: ffi::FlightPlan) -> Result<ffi::FpCheckResult, &'static str> {
     let rule = "true != ((\"test\" != \"notest\") == false)";
     let expr = parser::parse(rule).unwrap();
 

@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
+#include <string.h>
 
 #define ITEM_STRING_SIZE 16
 
@@ -34,40 +35,55 @@ void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan FlightPlan,
                             int *pColorCode, COLORREF *pRGB,
                             double *pFontSize) {
   switch (ItemCode) {
-  case TAG_ITEM_FPCHECK: {
-    if (!FlightPlan.IsValid()) {
-      return;
-    }
-    int32_t rfl = FlightPlan.GetFinalAltitude();
-    const char *typ = FlightPlan.GetFlightPlanData().GetPlanType();
-
-    try {
-      FpCheckResult fpc_res = check_flightplan(rfl);
-      switch (fpc_res) {
-      case FpCheckResult::Route:
-
-      case FpCheckResult::Ok:
-      default:
-        strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
-        *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
-        break;
-      }
-    } catch (rust::Error e) {
-      strncpy_s(sItemString, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
-      *pColorCode = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
-      return;
-    }
-
+  case TAG_ITEM_FPCHECK:
+    this->handle_fpcheck(FlightPlan, sItemString, pColorCode);
     break;
-  }
   default:
     break;
+  }
+}
+
+void EsPlugin::handle_fpcheck(EuroScopePlugIn::CFlightPlan FlightPlan,
+                              char sItemString[16], int *pColorCode) {
+  if (!FlightPlan.IsValid()) {
+  }
+  ffi::FlightRule rule =
+      get_flight_rule(FlightPlan.GetFlightPlanData().GetPlanType());
+  int32_t rfl = FlightPlan.GetFinalAltitude();
+  ffi::FlightPlan fp = {rule, rfl};
+
+  try {
+    ffi::FpCheckResult fpc_res = ffi::check_flightplan(fp);
+    switch (fpc_res) {
+    case ffi::FpCheckResult::Ok:
+    default:
+      strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
+      *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
+      break;
+    }
+  } catch (rust::Error e) {
+    strncpy_s(sItemString, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
+    *pColorCode = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
+    return;
   }
 }
 
 void EsPlugin::handle_checkfp() {
   this->DisplayUserMessage(PLUGIN_NAME, nullptr, "test", true, true, false,
                            false, false);
+}
+
+ffi::FlightRule get_flight_rule(const char *c_rule) {
+  std::string rule = std::string(c_rule);
+  if (rule == "V") {
+    return ffi::FlightRule::Vfr;
+  } else if (rule == "I") {
+    return ffi::FlightRule::Ifr;
+  } else if (rule == "Y") {
+    return ffi::FlightRule::Yankee;
+  } else if (rule == "Z") {
+    return ffi::FlightRule::Zulu;
+  }
 }
 
 void __declspec(dllexport)
