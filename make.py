@@ -23,7 +23,8 @@ OUTPUT_DLL = OUTPUT_PATH / "esfpc.dll"
 
 
 def compile_rust():
-    subprocess.run(["cargo", "build", "--target=i686-pc-windows-msvc", "--release"], check=True)
+    subprocess.run(
+        ["cargo", "build", "--target=i686-pc-windows-msvc", "--release"], check=True)
 
 
 def compile_cpp():
@@ -31,10 +32,10 @@ def compile_cpp():
         OUTPUT_PATH.mkdir()
     status = subprocess.run(
         f"\"{VC_STARTUP_SCRIPT}\" x86 && "
-        "cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" "
-        "/arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
-        "/link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"",
-        check=True, shell=True, capture_output=True, cwd=OUTPUT_PATH)
+        f"cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" "
+        f"/arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
+        f"/link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"",
+        shell=True, capture_output=True, cwd=OUTPUT_PATH)
 
     print(status.stdout.decode("utf8"))
     print(status.stderr.decode("utf8"))

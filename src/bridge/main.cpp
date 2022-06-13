@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "EuroScopePlugIn.hpp"
+#include "esfpc/src/lib.rs.h"
 
 #define ITEM_STRING_SIZE 16
 
@@ -41,15 +42,21 @@ void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan FlightPlan,
     const char *typ = FlightPlan.GetFlightPlanData().GetPlanType();
 
     try {
-      check_flightplan(rfl);
+      FpCheckResult fpc_res = check_flightplan(rfl);
+      switch (fpc_res) {
+      case FpCheckResult::Route:
+
+      case FpCheckResult::Ok:
+      default:
+        strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
+        *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
+        break;
+      }
     } catch (rust::Error e) {
       strncpy_s(sItemString, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
       *pColorCode = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
       return;
     }
-
-    strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
-    *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
 
     break;
   }
