@@ -1,3 +1,5 @@
+use crate::ffi;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Expr {
     kind: ExprKind,
@@ -55,11 +57,11 @@ fn or_op(l: LitKind, r: LitKind) -> Result<LitKind, &'static str> {
     }
 }
 
-pub fn eval(expr: &Expr) -> Result<LitKind, &'static str> {
+pub fn eval(expr: &Expr, fp: &ffi::FlightPlan) -> Result<LitKind, &'static str> {
     match &expr.kind {
         ExprKind::Binary(op, left_expr, right_expr) => {
-            let l = eval(left_expr)?;
-            let r = eval(right_expr)?;
+            let l = eval(left_expr, fp)?;
+            let r = eval(right_expr, fp)?;
 
             match op {
                 BinOp::And => and_op(l, r),
@@ -79,18 +81,32 @@ pub fn eval(expr: &Expr) -> Result<LitKind, &'static str> {
             }
         }
         ExprKind::Unary(op, expr) => match op {
-            UnOp::Not => match eval(expr)? {
+            UnOp::Not => match eval(expr, fp)? {
                 LitKind::Bool(v) => Ok(LitKind::Bool(!v)),
                 _ => Err("Cannot negate this literal"),
             },
         },
-        ExprKind::Lit(lit) => Ok(lit.clone()),
+        ExprKind::Lit(kind) => match kind {
+            LitKind::Var(var) => match var.as_str() {
+                "rule" => Ok(LitKind::String(fp.rule.to_string())),
+                "rfl" => Ok(LitKind::Int(fp.rfl)),
+                _ => Err("variable is not implemented"),
+            },
+            _ => Ok(kind.clone()),
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_fp() -> ffi::FlightPlan {
+        ffi::FlightPlan {
+            rule: ffi::FlightRule::Ifr,
+            rfl: 38000,
+        }
+    }
 
     #[test]
     fn simple_expr() {
@@ -110,7 +126,7 @@ mod tests {
                 }),
             ),
         };
-        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr))
+        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &test_fp()))
     }
 
     #[test]
@@ -123,7 +139,7 @@ mod tests {
                 }),
             ),
         };
-        assert!(eval(&expr).is_err())
+        assert!(eval(&expr, &test_fp()).is_err())
     }
 
     #[test]
@@ -139,6 +155,20 @@ mod tests {
                 }),
             ),
         };
-        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr))
+        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &test_fp()))
+    }
+
+    #[test]
+    fn fp_vars() {
+        let fp = ffi::FlightPlan {
+            rule: ffi::FlightRule::Ifr,
+            rfl: 35000,
+        };
+        let expr = Expr::new(ExprKind::Binary(
+            BinOp::Eq,
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Var("rfl".into())))),
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Int(35000)))),
+        ));
+        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &fp))
     }
 }

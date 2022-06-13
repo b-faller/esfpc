@@ -4,6 +4,8 @@ extern crate pest_derive;
 mod ast;
 mod parser;
 
+use std::fmt::Display;
+
 use ast::eval;
 
 #[cxx::bridge(namespace = "ffi")]
@@ -36,11 +38,23 @@ mod ffi {
     }
 }
 
+impl Display for ffi::FlightRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            &Self::Vfr => write!(f, "V"),
+            &Self::Ifr => write!(f, "I"),
+            &Self::Yankee => write!(f, "Y"),
+            &Self::Zulu => write!(f, "Z"),
+            _ => unreachable!(),
+        }
+    }
+}
+
 pub fn check_flightplan(fp: ffi::FlightPlan) -> Result<ffi::FpCheckResult, &'static str> {
     let rule = "true != ((\"test\" != \"notest\") == false)";
     let expr = parser::parse(rule).unwrap();
 
-    eval(&expr).and(Ok(ffi::FpCheckResult::Ok))
+    eval(&expr, &fp).and(Ok(ffi::FpCheckResult::Ok))
 }
 
 #[cfg(test)]

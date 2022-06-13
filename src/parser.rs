@@ -113,6 +113,5 @@ mod tests {
             parse("true != ((\"test\" != \"notest\") == ((123 < 10) && (!true)))").unwrap();
 
         assert_eq!(expected_expr, parsed);
-        assert_eq!(Ok(ast::LitKind::Bool(true)), ast::eval(&parsed))
     }
 }
