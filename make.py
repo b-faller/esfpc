@@ -33,7 +33,7 @@ def compile_cpp():
     status = subprocess.run(
         f"\"{VC_STARTUP_SCRIPT}\" x86 && "
         f"cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" "
-        f"/arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
+        f"/std:c++20 /arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
         f"/link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"",
         shell=True, capture_output=True, cwd=OUTPUT_PATH)
 
