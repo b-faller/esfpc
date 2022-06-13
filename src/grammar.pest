@@ -1,0 +1,19 @@
+ExprStr = _{ SOI ~ Expr ~ EOI }
+
+Expr = _{ Binary | Unary | Term }
+Term = _{ "(" ~ Expr ~ ")" | Lit }
+
+UnOp = { "!" }
+Unary = { UnOp ~ Term }
+
+BinOp = { "&&" | "||" | "==" | "!=" | ">=" | ">" | "<=" | "<" }
+Binary = { Term ~ (BinOp ~ Term) }
+
+bool = @{ "true" | "false" }
+int = @{ ASCII_DIGIT+ }
+var = @{ "adep" | "adest" | "rfl" | "sid" }
+str = @{ (ASCII_ALPHA | ASCII_DIGIT)+ }
+
+Lit = { bool | int | "\"" ~ str ~ "\"" | var }
+
+WHITESPACE = _{ " " }

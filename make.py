@@ -2,7 +2,8 @@ import subprocess
 from pathlib import Path
 
 VC_STARTUP_SCRIPT = Path(
-    "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat")
+    "C:/Program Files (x86)/Microsoft Visual Studio/"
+    "2022/BuildTools/VC/Auxiliary/Build/vcvarsall.bat")
 
 BASE_PATH = Path().cwd()
 
@@ -22,14 +23,18 @@ OUTPUT_DLL = OUTPUT_PATH / "esfpc.dll"
 
 
 def compile_rust():
-    subprocess.run(["cargo", "build", "--release"])
+    subprocess.run(["cargo", "build", "--target=i686-pc-windows-msvc", "--release"], check=True)
 
 
 def compile_cpp():
     if not OUTPUT_PATH.exists():
         OUTPUT_PATH.mkdir()
     status = subprocess.run(
-        f"\"{VC_STARTUP_SCRIPT}\" x86 && cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" /arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" /link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"", shell=True, capture_output=True, cwd=OUTPUT_PATH)
+        f"\"{VC_STARTUP_SCRIPT}\" x86 && "
+        "cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" "
+        "/arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
+        "/link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"",
+        check=True, shell=True, capture_output=True, cwd=OUTPUT_PATH)
 
     print(status.stdout.decode("utf8"))
     print(status.stderr.decode("utf8"))

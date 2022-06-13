@@ -1,3 +1,11 @@
+#[macro_use]
+extern crate pest_derive;
+
+mod ast;
+mod parser;
+
+use ast::eval;
+
 #[cxx::bridge]
 mod ffi {
     extern "Rust" {
@@ -6,11 +14,10 @@ mod ffi {
 }
 
 pub fn check_flightplan(rfl: i32) -> Result<(), &'static str> {
-    if rfl % 2000 == 0 {
-        Ok(())
-    } else {
-        Err("RFL is odd")
-    }
+    let rule = "true != ((\"test\" != \"notest\") == false)";
+    let expr = parser::parse(rule).unwrap();
+
+    eval(&expr).and(Ok(()))
 }
 
 #[cfg(test)]

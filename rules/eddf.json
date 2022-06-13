@@ -1,0 +1,15 @@
+{
+    "rules": [{
+        "if": "adep == 'EDDF' && sid == 'CINDY4S'",
+        "action": {
+            "typ": "fail",
+            "status": "RFL"
+        }
+    }, {
+        "if": "adep == 'EDDF' && sid == 'CINDY4S'",
+        "action": {
+            "typ": "success",
+            "status": "OK"
+        }
+    }]
+}
