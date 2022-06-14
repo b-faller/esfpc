@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 VC_STARTUP_SCRIPT = Path(
@@ -55,8 +56,21 @@ def build():
     copy_rules()
 
 
+def cppcheck():
+    subprocess.run(["cppcheck", "--enable=all", "--inconclusive", "--platform=win32W", "--std=c++20", "--suppress=missingIncludeSystem",
+                    "--suppress=*:target/cxxbridge/*", "--error-exitcode=1" "-I" "include/", "-I", "target/cxxbridge/", "src/bridge/main.cpp"], check=True)
+
+
 def main():
-    build()
+    if len(sys.argv) <= 1:
+        build()
+        return
+
+    command = sys.argv[1]
+    if command == "cppcheck":
+        cppcheck()
+    elif command == "build":
+        build()
 
 
 if __name__ == "__main__":
