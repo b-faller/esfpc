@@ -1,7 +1,10 @@
 #include "main.hpp"
 #include "EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
-#include <string.h>
+#include "rust/cxx.h"
+#include <format>
+#include <stdexcept>
+#include <string>
 
 #define ITEM_STRING_SIZE 16
 
@@ -18,62 +21,100 @@ EsPlugin::EsPlugin(void)
 
 EsPlugin::~EsPlugin() {}
 
-void EsPlugin::OnFunctionCall(int FunctionId, const char *ItemString, POINT Pt,
-                              RECT Area) {
-  switch (FunctionId) {
+void EsPlugin::OnFunctionCall(int function_id, const char *item_string,
+                              POINT point, RECT area) {
+  switch (function_id) {
   case TAG_FUNC_FPCHECK:
-    handle_checkfp();
+    handleTagClick();
     break;
   default:
     break;
   }
 }
 
-void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan FlightPlan,
-                            EuroScopePlugIn::CRadarTarget RadarTarget,
-                            int ItemCode, int TagData, char sItemString[16],
-                            int *pColorCode, COLORREF *pRGB,
-                            double *pFontSize) {
-  switch (ItemCode) {
+void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
+                            EuroScopePlugIn::CRadarTarget radar_target,
+                            int item_code, int tag_data, char item_string[16],
+                            int *color_code, COLORREF *rgb, double *font_size) {
+  switch (item_code) {
   case TAG_ITEM_FPCHECK:
-    this->handle_fpcheck(FlightPlan, sItemString, pColorCode);
+    this->updateTag(flight_plan, item_string, color_code);
     break;
   default:
     break;
   }
 }
 
-void EsPlugin::handle_fpcheck(EuroScopePlugIn::CFlightPlan FlightPlan,
-                              char sItemString[16], int *pColorCode) {
-  if (!FlightPlan.IsValid()) {
-  }
-  ffi::FlightRule rule =
-      get_flight_rule(FlightPlan.GetFlightPlanData().GetPlanType());
-  int32_t rfl = FlightPlan.GetFinalAltitude();
-  ffi::FlightPlan fp = {rule, rfl};
-
-  try {
-    ffi::FpCheckResult fpc_res = ffi::check_flightplan(fp);
-    switch (fpc_res) {
-    case ffi::FpCheckResult::Ok:
-    default:
-      strncpy_s(sItemString, ITEM_STRING_SIZE, "OK", _TRUNCATE);
-      *pColorCode = EuroScopePlugIn::TAG_COLOR_DEFAULT;
-      break;
-    }
-  } catch (rust::Error e) {
-    strncpy_s(sItemString, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
-    *pColorCode = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
+void EsPlugin::handleTagClick() {
+  EuroScopePlugIn::CFlightPlan flight_plan = FlightPlanSelectASEL();
+  if (!flight_plan.IsValid()) {
+    this->DisplayUserMessage(PLUGIN_NAME, nullptr, "Flight plan is invalid",
+                             true, true, false, false, false);
     return;
   }
+
+  try {
+    ffi::Action action = this->checkFlightPlan(flight_plan);
+    this->DisplayUserMessage(PLUGIN_NAME, nullptr, "Check succeded", true, true,
+                             false, false, false);
+  } catch (rust::Error e) {
+    std::string msg = std::format("Check failed: {}", e.what());
+    this->DisplayUserMessage(PLUGIN_NAME, nullptr, msg.c_str(), true, true,
+                             false, false, false);
+  }
 }
 
-void EsPlugin::handle_checkfp() {
-  this->DisplayUserMessage(PLUGIN_NAME, nullptr, "test", true, true, false,
-                           false, false);
+void EsPlugin::updateTag(EuroScopePlugIn::CFlightPlan flight_plan,
+                         char item_string[16], int *color_code) {
+  if (!flight_plan.IsValid()) {
+    return;
+  }
+
+  ffi::Action action;
+  try {
+    action = this->checkFlightPlan(flight_plan);
+  } catch (rust::Error e) {
+    // Flight plan check ran into error.
+    strncpy_s(item_string, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
+    *color_code = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
+    return;
+  }
+
+  switch (action.typ) {
+  case ffi::ActionType::Error:
+    *color_code = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
+    break;
+  case ffi::ActionType::Warning:
+    *color_code = EuroScopePlugIn::TAG_COLOR_ASSUMED;
+    break;
+  case ffi::ActionType::Info:
+    *color_code = EuroScopePlugIn::TAG_COLOR_NOTIFIED;
+    break;
+  case ffi::ActionType::Success:
+    *color_code = EuroScopePlugIn::TAG_COLOR_DEFAULT;
+    break;
+  }
+
+  strncpy_s(item_string, ITEM_STRING_SIZE, action.msg.c_str(), _TRUNCATE);
 }
 
-ffi::FlightRule get_flight_rule(const char *c_rule) {
+ffi::Action
+EsPlugin::checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
+  // Get flight plan variables
+  int32_t rfl = flight_plan.GetFinalAltitude();
+  EuroScopePlugIn::CFlightPlanData fp_data = flight_plan.GetFlightPlanData();
+  ffi::FlightRule rule = getFlightRule(fp_data.GetPlanType());
+  rust::String adep = fp_data.GetOrigin();
+  rust::String adest = fp_data.GetDestination();
+  rust::String sid = fp_data.GetSidName();
+
+  // Build flight plan struct
+  ffi::FlightPlan fp = {rule, rfl, adep, adest, sid};
+  // Check flight plan through Rust FFI.
+  return ffi::check_flightplan(fp);
+}
+
+ffi::FlightRule getFlightRule(const char *c_rule) {
   std::string rule = std::string(c_rule);
   if (rule == "V") {
     return ffi::FlightRule::Vfr;
@@ -86,9 +127,48 @@ ffi::FlightRule get_flight_rule(const char *c_rule) {
   }
 }
 
+std::string getDllPath() {
+  char path[MAX_PATH];
+  HMODULE hm = NULL;
+
+  if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                         (LPCWSTR)&EuroScopePlugInInit, &hm) == 0) {
+    throw std::runtime_error(
+        std::format("Could not get DLL module handle: {}", GetLastError()));
+  }
+
+  if (GetModuleFileName(hm, path, sizeof(path)) == 0) {
+    throw std::runtime_error(
+        std::format("Could not get DLL file path: {}", GetLastError()));
+  }
+
+  return std::string(path);
+}
+
 void __declspec(dllexport)
     EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **ppPlugInInstance) {
   *ppPlugInInstance = es_plugin = new EsPlugin();
+
+  std::string dll_path;
+  try {
+    dll_path = getDllPath();
+  } catch (std::runtime_error e) {
+    es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
+                                  true, true, true);
+    return;
+  }
+
+  try {
+    ffi::init_plugin(rust::Str(dll_path));
+  } catch (rust::Error e) {
+    es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
+                                  true, true, true);
+    return;
+  }
 }
 
-void __declspec(dllexport) EuroScopePlugInExit(void) { delete es_plugin; }
+void __declspec(dllexport) EuroScopePlugInExit(void) {
+  ffi::exit_plugin();
+  delete es_plugin;
+}

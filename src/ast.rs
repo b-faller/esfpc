@@ -28,6 +28,7 @@ pub enum BinOp {
     Gt,
     Le,
     Lt,
+    Mod,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -74,6 +75,7 @@ pub fn eval(expr: &Expr, fp: &ffi::FlightPlan) -> Result<LitKind, &'static str> 
                         BinOp::Gt => Ok(LitKind::Bool(l > r)),
                         BinOp::Le => Ok(LitKind::Bool(l <= r)),
                         BinOp::Lt => Ok(LitKind::Bool(l < r)),
+                        BinOp::Mod => Ok(LitKind::Int(l % r)),
                         _ => Err("Cannot compare inequalness with non integer type"),
                     },
                     _ => unreachable!(),
@@ -90,6 +92,9 @@ pub fn eval(expr: &Expr, fp: &ffi::FlightPlan) -> Result<LitKind, &'static str> 
             LitKind::Var(var) => match var.as_str() {
                 "rule" => Ok(LitKind::String(fp.rule.to_string())),
                 "rfl" => Ok(LitKind::Int(fp.rfl)),
+                "adep" => Ok(LitKind::String(fp.adep.clone())),
+                "adest" => Ok(LitKind::String(fp.adest.clone())),
+                "sid" => Ok(LitKind::String(fp.sid.clone())),
                 _ => Err("variable is not implemented"),
             },
             _ => Ok(kind.clone()),
@@ -101,10 +106,15 @@ pub fn eval(expr: &Expr, fp: &ffi::FlightPlan) -> Result<LitKind, &'static str> 
 mod tests {
     use super::*;
 
-    fn test_fp() -> ffi::FlightPlan {
-        ffi::FlightPlan {
-            rule: ffi::FlightRule::Ifr,
-            rfl: 38000,
+    impl Default for ffi::FlightPlan {
+        fn default() -> Self {
+            Self {
+                rule: ffi::FlightRule::Ifr,
+                rfl: 35000,
+                adep: "EDDF".to_string(),
+                adest: "EDDM".to_string(),
+                sid: "CINDY4S".to_string(),
+            }
         }
     }
 
@@ -126,7 +136,10 @@ mod tests {
                 }),
             ),
         };
-        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &test_fp()))
+        assert_eq!(
+            Ok(LitKind::Bool(true)),
+            eval(&expr, &ffi::FlightPlan::default())
+        )
     }
 
     #[test]
@@ -139,7 +152,7 @@ mod tests {
                 }),
             ),
         };
-        assert!(eval(&expr, &test_fp()).is_err())
+        assert!(eval(&expr, &ffi::FlightPlan::default()).is_err())
     }
 
     #[test]
@@ -155,7 +168,10 @@ mod tests {
                 }),
             ),
         };
-        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &test_fp()))
+        assert_eq!(
+            Ok(LitKind::Bool(true)),
+            eval(&expr, &ffi::FlightPlan::default())
+        )
     }
 
     #[test]
@@ -163,6 +179,7 @@ mod tests {
         let fp = ffi::FlightPlan {
             rule: ffi::FlightRule::Ifr,
             rfl: 35000,
+            ..Default::default()
         };
         let expr = Expr::new(ExprKind::Binary(
             BinOp::Eq,
@@ -170,5 +187,34 @@ mod tests {
             Box::new(Expr::new(ExprKind::Lit(LitKind::Int(35000)))),
         ));
         assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &fp))
+    }
+
+    #[test]
+    fn var_comparison() {
+        let fp = ffi::FlightPlan {
+            rfl: 35000,
+            ..Default::default()
+        };
+
+        let expr = Expr::new(ExprKind::Binary(
+            BinOp::Le,
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Var("rfl".into())))),
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Int(35000)))),
+        ));
+        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &fp));
+
+        let expr = Expr::new(ExprKind::Binary(
+            BinOp::Le,
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Var("rfl".into())))),
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Int(34999)))),
+        ));
+        assert_eq!(Ok(LitKind::Bool(false)), eval(&expr, &fp));
+
+        let expr = Expr::new(ExprKind::Binary(
+            BinOp::Le,
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Var("rfl".into())))),
+            Box::new(Expr::new(ExprKind::Lit(LitKind::Int(35001)))),
+        ));
+        assert_eq!(Ok(LitKind::Bool(true)), eval(&expr, &fp));
     }
 }

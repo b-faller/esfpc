@@ -2,7 +2,6 @@
 
 #include "EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
-#include "main.hpp"
 #include "rust/cxx.h"
 #include <string>
 
@@ -29,20 +28,39 @@ public:
   EsPlugin();
   ~EsPlugin();
 
-  virtual void OnFunctionCall(int FunctionId, const char *ItemString, POINT Pt,
-                              RECT Area);
+  virtual void OnFunctionCall(int function_id, const char *item_string,
+                              POINT point, RECT area);
 
-  virtual void OnGetTagItem(EuroScopePlugIn::CFlightPlan FlightPlan,
-                            EuroScopePlugIn::CRadarTarget RadarTarget,
-                            int ItemCode, int TagData, char sItemString[16],
-                            int *pColorCode, COLORREF *pRGB, double *pFontSize);
+  virtual void OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
+                            EuroScopePlugIn::CRadarTarget radar_target,
+                            int item_code, int tag_data, char item_string[16],
+                            int *color_code, COLORREF *rgb, double *font_size);
 
-  void handle_fpcheck(EuroScopePlugIn::CFlightPlan FlightPlan,
-                      char sItemString[16], int *pColorCode);
-  void handle_checkfp();
+  /// Called if the "Check FP" function is triggered.
+  void handleTagClick();
+
+  /// Checks the flightplan and updates the tag with the check result.
+  void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
+                 int *color_code);
+
+  /// Check a flightplan
+  ///
+  /// Throws rust::Error if the flight plan could not be checked.
+  ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan);
 };
 
-ffi::FlightRule get_flight_rule(const char *c_rule);
+/// Convert C string to ffi::FlightRule enum.
+ffi::FlightRule getFlightRule(const char *flight_rule);
 
+/// Get the absolute path to the DLL during runtime.
+std::string getDllPath();
+
+/// Plugin entry point.
+///
+/// Called when the plugin is loaded.
 void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **);
+
+/// Plugin exit point.
+///
+/// Called when the plugin is unloaded.
 void __declspec(dllexport) EuroScopePlugInExit(void);

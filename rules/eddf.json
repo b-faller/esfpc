@@ -1,15 +1,25 @@
 {
-    "rules": [{
-        "if": "adep == 'EDDF' && sid == 'CINDY4S'",
-        "action": {
-            "typ": "fail",
-            "status": "RFL"
+    "rules": [
+        {
+            "condition": "(adep == 'EDDF') && ((sid == 'ANEKI1L') && ((rfl % 2000) == 0))",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
+            "condition": "(adep == 'EDDF') && ((sid == 'ANEKI1L') && ((adest == 'EDDM') || (adest == 'EDDN')))",
+            "action": {
+                "typ": "error",
+                "msg": "DST"
+            }
+        },
+        {
+            "condition": "adep == 'EDDF'",
+            "action": {
+                "typ": "success",
+                "msg": "OK"
+            }
         }
-    }, {
-        "if": "adep == 'EDDF' && sid == 'CINDY4S'",
-        "action": {
-            "typ": "success",
-            "status": "OK"
-        }
-    }]
+    ]
 }

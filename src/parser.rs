@@ -28,6 +28,7 @@ fn build_binary(pair: pest::iterators::Pair<Rule>) -> ast::Expr {
         ">" => ast::BinOp::Gt,
         "<=" => ast::BinOp::Le,
         "<" => ast::BinOp::Lt,
+        "%" => ast::BinOp::Mod,
         _ => unreachable!(),
     };
     let right_expr = pair.next().expect("binary has right expression");

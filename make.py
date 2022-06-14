@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -43,9 +44,15 @@ def compile_cpp():
     status.check_returncode()
 
 
+def copy_rules():
+    rules_dir = BASE_PATH / "rules"
+    shutil.copytree(rules_dir, OUTPUT_PATH / "rules", dirs_exist_ok=True)
+
+
 def build():
     compile_rust()
     compile_cpp()
+    copy_rules()
 
 
 def main():

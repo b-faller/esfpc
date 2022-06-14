@@ -6,7 +6,7 @@ Term = _{ "(" ~ Expr ~ ")" | Lit }
 UnOp = { "!" }
 Unary = { UnOp ~ Term }
 
-BinOp = { "&&" | "||" | "==" | "!=" | ">=" | ">" | "<=" | "<" }
+BinOp = { "&&" | "||" | "==" | "!=" | ">=" | ">" | "<=" | "<" | "%" }
 Binary = { Term ~ (BinOp ~ Term) }
 
 bool = @{ "true" | "false" }
