@@ -16,7 +16,6 @@
 #define PLUGIN_DEVELOPER "Benjamin Faller"
 #define PLUGIN_COPYRIGHT "GPL v3"
 #define PLUGIN_VIEW_AVISO "EuroScope rule-based flightplan checker"
-#define PLUGIN_WELCOME_MESSAGE "You read this?"
 
 // ID to match when OnGetTagItem is called
 #define TAG_ITEM_FPCHECK 0x0001DEAD
