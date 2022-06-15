@@ -136,6 +136,6 @@ ffi::FlightPlan getFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
   rust::String sid = fp_data.GetSidName();
   rust::String route = fp_data.GetRoute();
 
-  ffi::FlightPlan fp = {ac, rule, cfl, rfl, dep, arr, sid, route};
+  ffi::FlightPlan fp = {ac, rule, cfl, rfl, dep, dep_rwy, arr, sid, route};
   return fp;
 }
