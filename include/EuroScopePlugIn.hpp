@@ -1,5 +1,8 @@
 #pragma once
 
+// Disable C4100: "unreferenced formal parameter"
+#pragma warning(disable : 4100)
+
 #include <cstddef>
 #include <windows.h>
 
@@ -4358,7 +4361,7 @@ void __declspec(dllexport)
 
 //---EuroScopePlugInExit-----------------------------------------------
 
-void __declspec(dllexport) EuroScopePlugInExit(void);
+void __declspec(dllexport) EuroScopePlugInExit();
 //---------------------------------------------------------------------
 //  Description :
 //      Every plugin have to implement this function. When EuroScope

@@ -28,26 +28,26 @@ public:
   EsPlugin();
   ~EsPlugin();
 
-  virtual void OnFunctionCall(int function_id, const char *item_string,
-                              POINT point, RECT area);
+  void OnFunctionCall(int function_id, const char *item_string, POINT point,
+                      RECT area) final override;
 
-  virtual void OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
-                            EuroScopePlugIn::CRadarTarget radar_target,
-                            int item_code, int tag_data, char item_string[16],
-                            int *color_code, COLORREF *rgb, double *font_size);
+  void OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
+                    EuroScopePlugIn::CRadarTarget radar_target, int item_code,
+                    int tag_data, char item_string[16], int *color_code,
+                    COLORREF *rgb, double *font_size) final override;
 
   /// Called if the "Check FP" function is triggered.
   void handleTagClick();
-
-  /// Checks the flightplan and updates the tag with the check result.
-  void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
-                 int *color_code);
-
-  /// Check a flightplan
-  ///
-  /// Throws rust::Error if the flight plan could not be checked.
-  ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan);
 };
+
+/// Checks the flightplan and updates the tag with the check result.
+void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
+               int *color_code);
+
+/// Check a flightplan
+///
+/// Throws rust::Error if the flight plan could not be checked.
+ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan);
 
 /// Convert C string to ffi::FlightRule enum.
 ffi::FlightRule getFlightRule(const char *flight_rule);
@@ -63,4 +63,4 @@ void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **);
 /// Plugin exit point.
 ///
 /// Called when the plugin is unloaded.
-void __declspec(dllexport) EuroScopePlugInExit(void);
+void __declspec(dllexport) EuroScopePlugInExit();

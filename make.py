@@ -57,8 +57,8 @@ def build():
 
 
 def cppcheck():
-    subprocess.run(["cppcheck", "--enable=all", "--inconclusive", "--platform=win32W", "--std=c++20", "--suppress=missingIncludeSystem",
-                    "--suppress=*:target/cxxbridge/*", "--error-exitcode=1" "-I" "include/", "-I", "target/cxxbridge/", "src/bridge/main.cpp"], check=True)
+    subprocess.run(["cppcheck", "--enable=all", "--inconclusive", "--platform=win32W", "--std=c++20", "--inline-suppr", "--suppress=missingIncludeSystem",
+                    "--suppress=*:target/cxxbridge/*", "--suppress=*:include/*", "--error-exitcode=1", "-I", "include/", "-I", "target/cxxbridge/", "src/bridge/"], check=True)
 
 
 def main():

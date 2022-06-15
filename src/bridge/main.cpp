@@ -21,8 +21,8 @@ EsPlugin::EsPlugin(void)
 
 EsPlugin::~EsPlugin() {}
 
-void EsPlugin::OnFunctionCall(int function_id, const char *item_string,
-                              POINT point, RECT area) {
+// cppcheck-suppress unusedFunction
+void EsPlugin::OnFunctionCall(int function_id, const char *, POINT, RECT) {
   switch (function_id) {
   case TAG_FUNC_FPCHECK:
     handleTagClick();
@@ -32,13 +32,14 @@ void EsPlugin::OnFunctionCall(int function_id, const char *item_string,
   }
 }
 
+// cppcheck-suppress unusedFunction
 void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
-                            EuroScopePlugIn::CRadarTarget radar_target,
-                            int item_code, int tag_data, char item_string[16],
-                            int *color_code, COLORREF *rgb, double *font_size) {
+                            EuroScopePlugIn::CRadarTarget, int item_code, int,
+                            char item_string[16], int *color_code, COLORREF *,
+                            double *) {
   switch (item_code) {
   case TAG_ITEM_FPCHECK:
-    this->updateTag(flight_plan, item_string, color_code);
+    updateTag(flight_plan, item_string, color_code);
     break;
   default:
     break;
@@ -54,26 +55,26 @@ void EsPlugin::handleTagClick() {
   }
 
   try {
-    ffi::Action action = this->checkFlightPlan(flight_plan);
+    ffi::Action action = checkFlightPlan(flight_plan);
     this->DisplayUserMessage(PLUGIN_NAME, nullptr, "Check succeded", true, true,
                              false, false, false);
-  } catch (rust::Error e) {
+  } catch (rust::Error &e) {
     std::string msg = std::format("Check failed: {}", e.what());
     this->DisplayUserMessage(PLUGIN_NAME, nullptr, msg.c_str(), true, true,
                              false, false, false);
   }
 }
 
-void EsPlugin::updateTag(EuroScopePlugIn::CFlightPlan flight_plan,
-                         char item_string[16], int *color_code) {
+void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
+               int *color_code) {
   if (!flight_plan.IsValid()) {
     return;
   }
 
   ffi::Action action;
   try {
-    action = this->checkFlightPlan(flight_plan);
-  } catch (rust::Error e) {
+    action = checkFlightPlan(flight_plan);
+  } catch (rust::Error &) {
     // Flight plan check ran into error.
     strncpy_s(item_string, ITEM_STRING_SIZE, "ERR", _TRUNCATE);
     *color_code = EuroScopePlugIn::TAG_COLOR_EMERGENCY;
@@ -98,8 +99,7 @@ void EsPlugin::updateTag(EuroScopePlugIn::CFlightPlan flight_plan,
   strncpy_s(item_string, ITEM_STRING_SIZE, action.msg.c_str(), _TRUNCATE);
 }
 
-ffi::Action
-EsPlugin::checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
+ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
   // Get flight plan variables
   int32_t rfl = flight_plan.GetFinalAltitude();
   EuroScopePlugIn::CFlightPlanData fp_data = flight_plan.GetFlightPlanData();
@@ -114,8 +114,8 @@ EsPlugin::checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
   return ffi::check_flightplan(fp);
 }
 
-ffi::FlightRule getFlightRule(const char *c_rule) {
-  std::string rule = std::string(c_rule);
+ffi::FlightRule getFlightRule(const char *flight_rule) {
+  std::string rule = std::string(flight_rule);
   if (rule == "V") {
     return ffi::FlightRule::Vfr;
   } else if (rule == "I") {
@@ -124,6 +124,9 @@ ffi::FlightRule getFlightRule(const char *c_rule) {
     return ffi::FlightRule::Yankee;
   } else if (rule == "Z") {
     return ffi::FlightRule::Zulu;
+  } else {
+    throw std::invalid_argument(
+        std::format("Invalid flight rule {}", flight_rule));
   }
 }
 
@@ -153,7 +156,7 @@ void __declspec(dllexport)
   std::string dll_path;
   try {
     dll_path = getDllPath();
-  } catch (std::runtime_error e) {
+  } catch (std::runtime_error &e) {
     es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
                                   true, true, true);
     return;
@@ -161,14 +164,15 @@ void __declspec(dllexport)
 
   try {
     ffi::init_plugin(rust::Str(dll_path));
-  } catch (rust::Error e) {
+  } catch (rust::Error &e) {
     es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
                                   true, true, true);
     return;
   }
 }
 
-void __declspec(dllexport) EuroScopePlugInExit(void) {
+// cppcheck-suppress unusedFunction
+void __declspec(dllexport) EuroScopePlugInExit() {
   ffi::exit_plugin();
   delete es_plugin;
 }
