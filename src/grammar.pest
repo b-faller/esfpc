@@ -9,9 +9,11 @@ Unary = { UnOp ~ Term }
 BinOp = { "&&" | "||" | "==" | "!=" | ">=" | ">" | "<=" | "<" | "%" }
 Binary = { Term ~ (BinOp ~ Term) }
 
+var_part = _{ ASCII_ALPHA_LOWER+ ~ ("_" ~ ASCII_ALPHA_LOWER+)* }
+
 bool = @{ "true" | "false" }
 int = @{ ASCII_DIGIT+ }
-var = @{ "adep" | "adest" | "rfl" | "sid" }
+var = @{ var_part ~ ("." ~ var_part)* }
 str = @{ (ASCII_ALPHA | ASCII_DIGIT)+ }
 
 Lit = { bool | int | "'" ~ str ~ "'" | var }

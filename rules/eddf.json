@@ -1,21 +1,21 @@
 {
     "rules": [
         {
-            "condition": "(adep == 'EDDF') && ((sid == 'ANEKI1L') && ((rfl % 2000) == 0))",
+            "condition": "(dep == 'EDDF') && ((sid == 'ANEKI1L') && ((rfl % 2000) == 0))",
             "action": {
                 "typ": "error",
                 "msg": "RFL"
             }
         },
         {
-            "condition": "(adep == 'EDDF') && ((sid == 'ANEKI1L') && ((adest == 'EDDM') || (adest == 'EDDN')))",
+            "condition": "(dep == 'EDDF') && ((sid == 'ANEKI1L') && ((arr == 'EDDM') || (arr == 'EDDN')))",
             "action": {
                 "typ": "error",
                 "msg": "DST"
             }
         },
         {
-            "condition": "adep == 'EDDF'",
+            "condition": "dep == 'EDDF'",
             "action": {
                 "typ": "success",
                 "msg": "OK"

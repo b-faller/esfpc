@@ -14,7 +14,8 @@ TARGET_ARCH = BASE_PATH / "target/i686-pc-windows-msvc"
 INCLUDE_CXX_PATH = TARGET_ARCH / "cxxbridge"
 
 RS_SOURCE = BASE_PATH / "src/lib.rs"
-CPP_SOURCE = BASE_PATH / "src/bridge/main.cpp"
+CPP_SOURCES = [BASE_PATH / "src/bridge/main.cpp",
+               BASE_PATH / "src/bridge/util.cpp"]
 CXX_SOURCE = TARGET_ARCH / "cxxbridge/esfpc/src/lib.rs.cc"
 
 EUROSCOPE_LIB = BASE_PATH / "lib/EuroScopePlugInDll.lib"
@@ -32,9 +33,11 @@ def compile_rust():
 def compile_cpp():
     if not OUTPUT_PATH.exists():
         OUTPUT_PATH.mkdir()
+
+    cpp_sources = str.join(" ", [f"\"{source}\"" for source in CPP_SOURCES])
     status = subprocess.run(
         f"\"{VC_STARTUP_SCRIPT}\" x86 && "
-        f"cl \"{CPP_SOURCE}\" \"{CXX_SOURCE}\" "
+        f"cl {cpp_sources} \"{CXX_SOURCE}\" "
         f"/std:c++20 /permissive- /W4 /arch:IA32 /EHsc /LD /MD -I \"{INCLUDE_PATH}\" -I \"{INCLUDE_CXX_PATH}\" "
         f"/link /OUT:\"{OUTPUT_DLL}\" \"{EUROSCOPE_LIB}\" \"{RS_DLL}\"",
         shell=True, capture_output=True, cwd=OUTPUT_PATH)

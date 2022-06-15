@@ -49,9 +49,6 @@ void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
 /// Throws rust::Error if the flight plan could not be checked.
 ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan);
 
-/// Convert C string to ffi::FlightRule enum.
-ffi::FlightRule getFlightRule(const char *flight_rule);
-
 /// Get the absolute path to the DLL during runtime.
 std::string getDllPath();
 

@@ -80,7 +80,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_var() {
+        assert_eq!(
+            Ok(ast::Expr::new(ast::ExprKind::Lit(ast::LitKind::Var(
+                "dep".into()
+            )))),
+            parse("dep")
+        );
+        assert_eq!(
+            Ok(ast::Expr::new(ast::ExprKind::Lit(ast::LitKind::Var(
+                "ac.typ".into()
+            )))),
+            parse("ac.typ")
+        );
+        assert_eq!(
+            Ok(ast::Expr::new(ast::ExprKind::Lit(ast::LitKind::Var(
+                "ac.faa_equip_code".into()
+            )))),
+            parse("ac.faa_equip_code")
+        );
+        assert!(parse("_test").is_err());
+        assert!(parse("test_").is_err());
+        assert!(parse("test_test").is_ok());
+        assert!(parse("test__test").is_err());
+        assert!(parse("ac._test").is_err());
+        assert!(parse("ac.test_").is_err());
+        assert!(parse("ac.test_.test").is_err());
+        assert!(parse("ac.test.test").is_ok());
+    }
 
+    #[test]
     fn test_complex() {
         let expected_expr = ast::Expr::new(ast::ExprKind::Binary(
             ast::BinOp::Neq,

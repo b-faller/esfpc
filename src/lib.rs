@@ -5,10 +5,109 @@ mod ast;
 mod config;
 mod parser;
 
-use std::{fmt::Display, path::PathBuf, vec};
+use std::fmt::Display;
+use std::path::PathBuf;
 
 #[cxx::bridge(namespace = "ffi")]
 mod ffi {
+    #[derive(Debug, Clone)]
+    enum AircraftType {
+        /// ? - unknown
+        Unknown,
+        /// L - landplane
+        Landplane,
+        /// S - seaplane
+        Seaplane,
+        /// A - amphibian
+        Amphibian,
+        /// H - helicopter
+        Helicopter,
+        /// G - gyrocopter
+        Gyrocopter,
+        /// T - tilt-wing AC
+        TiltWing,
+    }
+
+    #[derive(Debug, Clone)]
+    enum WakeTurbulenceCategory {
+        ///  ? - unknown
+        Unknown,
+        ///  L - light
+        Light,
+        ///  M - medium
+        Medium,
+        ///  H - heavy
+        Heavy,
+        ///  J - super heavy
+        Super,
+    }
+
+    #[derive(Debug, Clone)]
+    enum FaaEquipmentCode {
+        /// ? - unknown
+        Unknown,
+        /// /T no DME, Transponder without mode A+C
+        T,
+        /// /X no DME, No Transponder
+        X,
+        /// /U no DME, Transponder with mode A+C
+        U,
+        /// /D DME, No Transponder
+        D,
+        /// /B DME, Transponder without mode A+C
+        B,
+        /// /A DME, Transponder with mode A+C
+        A,
+        /// /M TACAN only, No Transponder
+        M,
+        /// /N TACAN only, Transponder without mode A+C
+        N,
+        /// /P TACAN only, Transponder with mode A+C
+        P,
+        /// /Y simple RNAV, No Transponder
+        Y,
+        /// /C simple RNAV, Transponder without mode A+C
+        C,
+        /// /I simple RNAV, Transponder with mode A+C
+        I,
+        /// /E advanced RNAV with Dual FMS
+        E,
+        /// /F advanced RNAV with Single FMS
+        F,
+        /// /G advanced RNAV with GPS or GNSS
+        G,
+        /// /R advanced RNAV with RNP capability
+        R,
+        /// /W advanced RNAV with RVSM capability
+        W,
+        /// /Q advanced RNAV with RNP and RVSM
+        Q,
+    }
+
+    #[derive(Debug, Clone)]
+    enum EngineType {
+        /// ? - unknown
+        Unknown,
+        /// P - piston
+        Piston,
+        /// T - turboprop/turboshaft
+        Turboprop,
+        /// J - jet
+        Jet,
+        /// E - electric
+        Electric,
+    }
+
+    #[derive(Debug, Clone)]
+    struct Aircraft {
+        typ: AircraftType,
+        wtc: WakeTurbulenceCategory,
+        faa_equip_code: FaaEquipmentCode,
+        eng_typ: EngineType,
+        eng_count: u8,
+        is_rvsm_capable: bool,
+    }
+
     #[derive(Debug, Clone)]
     enum FlightRule {
         Vfr,
@@ -19,11 +118,15 @@ mod ffi {
 
     #[derive(Debug, Clone)]
     struct FlightPlan {
+        ac: Aircraft,
         rule: FlightRule,
-        rfl: i32,
-        adep: String,
-        adest: String,
+        cfl: u32,
+        rfl: u32,
+        dep: String,
+        dep_rwy: String,
+        arr: String,
         sid: String,
+        route: String,
     }
 
     #[derive(Debug)]
@@ -34,16 +137,84 @@ mod ffi {
 
     #[derive(Debug)]
     enum ActionType {
-        Error,
-        Warning,
-        Info,
         Success,
+        Info,
+        Warning,
+        Error,
     }
 
     extern "Rust" {
         fn init_plugin(dll_path: &str) -> Result<()>;
         fn exit_plugin();
         fn check_flightplan(fp: FlightPlan) -> Result<Action>;
+    }
+}
+
+impl Display for ffi::AircraftType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Unknown => write!(f, "?"),
+            Self::Landplane => write!(f, "L"),
+            Self::Seaplane => write!(f, "S"),
+            Self::Amphibian => write!(f, "A"),
+            Self::Helicopter => write!(f, "H"),
+            Self::Gyrocopter => write!(f, "G"),
+            Self::TiltWing => write!(f, "T"),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Display for ffi::WakeTurbulenceCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Unknown => write!(f, "?"),
+            Self::Light => write!(f, "L"),
+            Self::Medium => write!(f, "M"),
+            Self::Heavy => write!(f, "H"),
+            Self::Super => write!(f, "S"),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Display for ffi::FaaEquipmentCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Unknown => write!(f, "?"),
+            Self::T => write!(f, "T"),
+            Self::X => write!(f, "X"),
+            Self::U => write!(f, "U"),
+            Self::D => write!(f, "D"),
+            Self::B => write!(f, "B"),
+            Self::A => write!(f, "A"),
+            Self::M => write!(f, "M"),
+            Self::N => write!(f, "N"),
+            Self::P => write!(f, "P"),
+            Self::Y => write!(f, "Y"),
+            Self::C => write!(f, "C"),
+            Self::I => write!(f, "I"),
+            Self::E => write!(f, "E"),
+            Self::F => write!(f, "F"),
+            Self::G => write!(f, "G"),
+            Self::R => write!(f, "R"),
+            Self::W => write!(f, "W"),
+            Self::Q => write!(f, "Q"),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Display for ffi::EngineType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Unknown => write!(f, "?"),
+            Self::Piston => write!(f, "P"),
+            Self::Turboprop => write!(f, "T"),
+            Self::Jet => write!(f, "J"),
+            Self::Electric => write!(f, "E"),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -152,16 +323,17 @@ mod tests {
         let fp_valid = ffi::FlightPlan {
             rule: ffi::FlightRule::Ifr,
             rfl: 35000,
-            adep: "EDDF".into(),
-            adest: "EDDS".into(),
+            dep: "EDDF".into(),
+            arr: "EDDS".into(),
             sid: "ANEKI1L".into(),
+            ..Default::default()
         };
         let fp_invalid_rfl = ffi::FlightPlan {
             rfl: 34000,
             ..fp_valid.clone()
         };
         let fp_invalid_dst = ffi::FlightPlan {
-            adest: "EDDM".into(),
+            arr: "EDDM".into(),
             ..fp_valid.clone()
         };
 

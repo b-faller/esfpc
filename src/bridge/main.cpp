@@ -2,8 +2,10 @@
 #include "EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
 #include "rust/cxx.h"
+#include "util.hpp"
 #include <format>
 #include <stdexcept>
+#include <stdint.h>
 #include <string>
 
 #define ITEM_STRING_SIZE 16
@@ -100,34 +102,8 @@ void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
 }
 
 ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
-  // Get flight plan variables
-  int32_t rfl = flight_plan.GetFinalAltitude();
-  EuroScopePlugIn::CFlightPlanData fp_data = flight_plan.GetFlightPlanData();
-  ffi::FlightRule rule = getFlightRule(fp_data.GetPlanType());
-  rust::String adep = fp_data.GetOrigin();
-  rust::String adest = fp_data.GetDestination();
-  rust::String sid = fp_data.GetSidName();
-
-  // Build flight plan struct
-  ffi::FlightPlan fp = {rule, rfl, adep, adest, sid};
-  // Check flight plan through Rust FFI.
+  ffi::FlightPlan fp = getFlightPlan(flight_plan);
   return ffi::check_flightplan(fp);
-}
-
-ffi::FlightRule getFlightRule(const char *flight_rule) {
-  std::string rule = std::string(flight_rule);
-  if (rule == "V") {
-    return ffi::FlightRule::Vfr;
-  } else if (rule == "I") {
-    return ffi::FlightRule::Ifr;
-  } else if (rule == "Y") {
-    return ffi::FlightRule::Yankee;
-  } else if (rule == "Z") {
-    return ffi::FlightRule::Zulu;
-  } else {
-    throw std::invalid_argument(
-        std::format("Invalid flight rule {}", flight_rule));
-  }
 }
 
 std::string getDllPath() {
