@@ -6,10 +6,14 @@ CPPCHECK_FLAGS = ["--enable=all", "--inconclusive", "--platform=win32W", "--std=
 
 
 def cppcheck():
-    cmd = ["cppcheck", *CPPCHECK_FLAGS, "-I", "../", "--suppress=*:*/EuroScopePlugIn.hpp", "-I",
-           "target/i686-pc-windows-msvc/cxxbridge/", "--suppress=*:target/*", "cxx/*"]
-    print(str.join(" ", cmd), file=sys.stderr)
-    subprocess.run(cmd, check=True)
+    flags = str.join(" ", CPPCHECK_FLAGS)
+    cmd = \
+        f"cppcheck {flags} " \
+        f"-I ../ --suppress=*:*/EuroScopePlugIn.hpp " \
+        f"-I target/i686-pc-windows-msvc/cxxbridge/ --suppress=*:target/* " \
+        f"cxx/*"
+    print(cmd, file=sys.stderr)
+    subprocess.run(cmd, shell=True, check=True)
 
 
 if __name__ == "__main__":
