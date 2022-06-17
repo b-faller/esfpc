@@ -144,9 +144,23 @@ mod ffi {
     }
 
     extern "Rust" {
-        fn init_plugin(dll_path: &str) -> Result<()>;
-        fn exit_plugin();
         fn check_flightplan(fp: FlightPlan) -> Result<Action>;
+        // fn on_function_call(plugin: Pin<&mut EsPlugin>);
+        // fn on_get_tag_item(plugin: Pin<&mut EsPlugin>);
+    }
+
+    #[namespace = ""]
+    unsafe extern "C++" {
+        include!("esfpc/cxx/main.hpp");
+
+        #[namespace = "EuroScopePlugIn"]
+        type CPlugIn;
+
+        type EsPlugin;
+
+        fn create_plugin() -> UniquePtr<EsPlugin>;
+        fn display_user_message(self: Pin<&mut EsPlugin>, message: &str);
+        fn get_dll_path() -> Result<String>;
     }
 }
 
@@ -247,20 +261,26 @@ impl From<config::Action> for ffi::Action {
 static mut PLUGIN: Option<Plugin> = None;
 
 struct Plugin {
+    /// Our plugin holds a unique pointer to automatically deallocate the C++ plugin when this Rust counterpart is dropped.
+    ///
+    /// ## Warning
+    /// This is not really a unique pointer. EuroScope holds a reference to the C++ plugin as well!
+    cpp_plugin: cxx::UniquePtr<ffi::EsPlugin>,
     configs: Vec<config::Config>,
 }
 
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        self.cpp_plugin
+            .pin_mut()
+            .display_user_message("ESFPC unloaded.");
+    }
+}
+
 impl Plugin {
-    fn new(dll_path: PathBuf) -> Result<Self, std::io::Error> {
-        let rules_dir = dll_path
-            .parent()
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "DLL path has no parent directory",
-                )
-            })?
-            .join("rules");
+    fn start(mut cpp_plugin: cxx::UniquePtr<ffi::EsPlugin>) -> Result<Self, std::io::Error> {
+        let rules_dir = find_rules_dir()?;
+        println!("Rules directory: {}", rules_dir.display());
 
         let mut configs = vec![];
         for entry in rules_dir.read_dir()? {
@@ -271,18 +291,41 @@ impl Plugin {
             configs.push(config);
         }
 
-        Ok(Self { configs })
+        cpp_plugin.pin_mut().display_user_message("ESFPC loaded.");
+
+        Ok(Self {
+            cpp_plugin,
+            configs,
+        })
     }
 }
 
-pub fn init_plugin(dll_path: &str) -> Result<(), std::io::Error> {
-    let dll_path = PathBuf::from(dll_path);
-    let plugin = Plugin::new(dll_path)?;
-    unsafe { PLUGIN = Some(plugin) }
-    Ok(())
-}
+fn find_rules_dir() -> Result<PathBuf, std::io::Error> {
+    let dir = std::env::current_dir()?.join("rules");
+    if dir.exists() {
+        return Ok(dir);
+    }
 
-pub fn exit_plugin() {}
+    let dll_path =
+        ffi::get_dll_path().map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    let dir = PathBuf::from(dll_path)
+        .parent()
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "DLL path has no parent directory",
+            )
+        })?
+        .join("rules");
+    if dir.exists() {
+        return Ok(dir);
+    }
+
+    Err(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        "No rules directory found",
+    ))
+}
 
 pub fn check_flightplan(fp: ffi::FlightPlan) -> Result<ffi::Action, &'static str> {
     unsafe {
@@ -313,6 +356,42 @@ fn check_flightplan_impl(
     })
 }
 
+#[export_name = "?EuroScopePlugInInit@@YAXPAPAVCPlugIn@EuroScopePlugIn@@@Z"]
+fn plugin_init(plugin_instance: *mut *mut ffi::CPlugIn) {
+    // Safeguard, that the EuroScope pointer can be dereferenced later.
+    assert!(!plugin_instance.is_null());
+
+    // Create a new C++ plugin instance on the heap as unique pointer.
+    let cpp_plugin = ffi::create_plugin();
+
+    // Turn the unique pointer into a raw pointer.
+    // This is required, because we have to set the EuroScope plugin pointer to the same instance.
+    // We are now responsible again to free the memory of cpp_plugin.
+    let cpp_plugin_ptr = cpp_plugin.into_raw();
+
+    // Recreate a unique pointer to handle the deallocation on drop.
+    // When drop is called, EsPlugin is freed and we are no longer responsible.
+    let cpp_plugin = unsafe { cxx::UniquePtr::from_raw(cpp_plugin_ptr) };
+
+    match Plugin::start(cpp_plugin) {
+        Ok(plugin) => unsafe {
+            // Initialize static variable with out plugin.
+            PLUGIN = Some(plugin);
+            // Set the EuroScope plugin pointer.
+            *plugin_instance = cpp_plugin_ptr as *mut ffi::CPlugIn;
+        },
+        Err(_) => unsafe {
+            // Set the EuroScope plugin pointer to null, as the plugin creation failed.
+            *plugin_instance = std::ptr::null_mut();
+        },
+    }
+}
+
+#[export_name = "?EuroScopePlugInExit@@YAXXZ"]
+fn plugin_exit() {
+    unsafe { PLUGIN = None };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,7 +416,7 @@ mod tests {
             ..fp_valid.clone()
         };
 
-        let plugin = Plugin::new("esfpc.dll".into()).unwrap();
+        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
 
         // Odd RFL
         assert_eq!(

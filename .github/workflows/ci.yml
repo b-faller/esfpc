@@ -10,16 +10,20 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      # Rust checks
       - name: Build Rust
         run: cargo build --verbose
       - name: Run Rust tests
         run: cargo test --verbose
-      # C++ checks
+      - name: Run Clippy
+        run: cargo clippy --all --verbose
+  cpp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
       - name: Install Cppcheck
         run: sudo apt-get install -y cppcheck
       - name: Run Cppcheck
-        run: python3 make.py cppcheck
+        run: python3 scripts/cppcheck.py

@@ -1,5 +1,5 @@
-#include "util.hpp"
-#include "EuroScopePlugIn.hpp"
+#include "esfpc/cxx/util.hpp"
+#include "esfpc/include/EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
 #include "rust/cxx.h"
 #include <format>

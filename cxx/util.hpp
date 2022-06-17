@@ -1,5 +1,16 @@
-#include "EuroScopePlugIn.hpp"
-#include "esfpc/src/lib.rs.h"
+#pragma once
+
+#include "esfpc/include/EuroScopePlugIn.hpp"
+#include <cstdint>
+
+namespace ffi {
+enum class AircraftType : uint8_t;
+enum class WakeTurbulenceCategory : uint8_t;
+enum class FaaEquipmentCode : uint8_t;
+enum class EngineType : uint8_t;
+enum class FlightRule : uint8_t;
+struct FlightPlan;
+} // namespace ffi
 
 /// Convert char to FFI enum.
 ffi::AircraftType getAircraftType(char);

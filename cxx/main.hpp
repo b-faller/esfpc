@@ -1,15 +1,9 @@
 #pragma once
 
-#include "EuroScopePlugIn.hpp"
-#include "esfpc/src/lib.rs.h"
+#include "esfpc/include/EuroScopePlugIn.hpp"
 #include "rust/cxx.h"
+#include <memory>
 #include <string>
-
-#pragma comment(lib, "advapi32")
-#pragma comment(lib, "bcrypt")
-#pragma comment(lib, "msvcrt")
-#pragma comment(lib, "userenv")
-#pragma comment(lib, "ws2_32")
 
 #define PLUGIN_NAME "esfpc"
 #define PLUGIN_VERSION "0.1.0"
@@ -22,10 +16,14 @@
 // Function ID to match when OnFunctionCall is called
 #define TAG_FUNC_FPCHECK 0x1001DEAD
 
+namespace ffi {
+struct Action;
+}
+
 class EsPlugin : public EuroScopePlugIn::CPlugIn {
 public:
-  EsPlugin();
-  ~EsPlugin();
+  EsPlugin() noexcept;
+  ~EsPlugin() noexcept;
 
   void OnFunctionCall(int function_id, const char *item_string, POINT point,
                       RECT area) final override;
@@ -37,6 +35,8 @@ public:
 
   /// Called if the "Check FP" function is triggered.
   void handleTagClick();
+
+  void display_user_message(rust::Str message);
 };
 
 /// Checks the flightplan and updates the tag with the check result.
@@ -49,14 +49,7 @@ void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
 ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan);
 
 /// Get the absolute path to the DLL during runtime.
-std::string getDllPath();
+rust::String get_dll_path();
 
-/// Plugin entry point.
-///
-/// Called when the plugin is loaded.
-void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **);
-
-/// Plugin exit point.
-///
-/// Called when the plugin is unloaded.
-void __declspec(dllexport) EuroScopePlugInExit();
+/// Create a C++ plugin instance.
+std::unique_ptr<EsPlugin> create_plugin();

@@ -1,9 +1,10 @@
-#include "main.hpp"
-#include "EuroScopePlugIn.hpp"
+#include "esfpc/cxx/main.hpp"
+#include "esfpc/cxx/util.hpp"
+#include "esfpc/include/EuroScopePlugIn.hpp"
 #include "esfpc/src/lib.rs.h"
 #include "rust/cxx.h"
-#include "util.hpp"
 #include <format>
+#include <memory>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -12,18 +13,23 @@
 
 EsPlugin *es_plugin = NULL;
 
-EsPlugin::EsPlugin(void)
+EsPlugin::EsPlugin(void) noexcept
     : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, PLUGIN_NAME, PLUGIN_VERSION,
               PLUGIN_DEVELOPER, PLUGIN_COPYRIGHT) {
   // Create a new entry which can be shown in a list such as departure list.
   this->RegisterTagItemType("VFPC", TAG_ITEM_FPCHECK);
   // Create a function which can be called when clicking on a tag in a list.
   this->RegisterTagItemFunction("Check FP", TAG_FUNC_FPCHECK);
+
+  this->DisplayUserMessage(PLUGIN_NAME, nullptr, "C++ plugin created", true,
+                           true, false, false, false);
 }
 
-EsPlugin::~EsPlugin() {}
+EsPlugin::~EsPlugin() noexcept {
+  this->DisplayUserMessage(PLUGIN_NAME, nullptr, "C++ plugin deleted", true,
+                           true, false, false, false);
+}
 
-// cppcheck-suppress unusedFunction
 void EsPlugin::OnFunctionCall(int function_id, const char *, POINT, RECT) {
   switch (function_id) {
   case TAG_FUNC_FPCHECK:
@@ -34,7 +40,6 @@ void EsPlugin::OnFunctionCall(int function_id, const char *, POINT, RECT) {
   }
 }
 
-// cppcheck-suppress unusedFunction
 void EsPlugin::OnGetTagItem(EuroScopePlugIn::CFlightPlan flight_plan,
                             EuroScopePlugIn::CRadarTarget, int item_code, int,
                             char item_string[16], int *color_code, COLORREF *,
@@ -65,6 +70,12 @@ void EsPlugin::handleTagClick() {
     this->DisplayUserMessage(PLUGIN_NAME, nullptr, msg.c_str(), true, true,
                              false, false, false);
   }
+}
+
+void EsPlugin::display_user_message(rust::Str message) {
+  std::string msg = std::string(message);
+  this->DisplayUserMessage(PLUGIN_NAME, nullptr, msg.c_str(), true, true, false,
+                           false, false);
 }
 
 void updateTag(EuroScopePlugIn::CFlightPlan flight_plan, char item_string[16],
@@ -106,7 +117,8 @@ ffi::Action checkFlightPlan(EuroScopePlugIn::CFlightPlan flight_plan) {
   return ffi::check_flightplan(fp);
 }
 
-std::string getDllPath() {
+// cppcheck-suppress unusedFunction
+rust::String get_dll_path() {
   char path[MAX_PATH];
   HMODULE hm = NULL;
 
@@ -122,33 +134,10 @@ std::string getDllPath() {
         std::format("Could not get DLL file path: {}", GetLastError()));
   }
 
-  return std::string(path);
-}
-
-void __declspec(dllexport)
-    EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **ppPlugInInstance) {
-  *ppPlugInInstance = es_plugin = new EsPlugin();
-
-  std::string dll_path;
-  try {
-    dll_path = getDllPath();
-  } catch (std::runtime_error &e) {
-    es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
-                                  true, true, true);
-    return;
-  }
-
-  try {
-    ffi::init_plugin(rust::Str(dll_path));
-  } catch (rust::Error &e) {
-    es_plugin->DisplayUserMessage(PLUGIN_NAME, nullptr, e.what(), true, true,
-                                  true, true, true);
-    return;
-  }
+  return rust::String(path);
 }
 
 // cppcheck-suppress unusedFunction
-void __declspec(dllexport) EuroScopePlugInExit() {
-  ffi::exit_plugin();
-  delete es_plugin;
+std::unique_ptr<EsPlugin> create_plugin() {
+  return std::make_unique<EsPlugin>();
 }
