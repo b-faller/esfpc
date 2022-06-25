@@ -1,12 +1,10 @@
-#[macro_use]
-extern crate pest_derive;
-
-mod ast;
 mod config;
-mod parser;
+mod lang;
 
 use std::fmt::Display;
 use std::path::PathBuf;
+
+use lang::ast;
 
 #[cxx::bridge(namespace = "ffi")]
 mod ffi {
@@ -342,10 +340,9 @@ fn check_flightplan_impl(
 ) -> Result<config::Action, &'static str> {
     for config in &plugin.configs {
         for rule in &config.rules {
-            return match ast::eval(&rule.condition, &fp) {
-                Ok(ast::LitKind::Bool(true)) => Ok(rule.action.clone()),
-                Ok(ast::LitKind::Bool(false)) => continue,
-                Ok(_) => Err("expression does not evaluate to true or false"),
+            return match ast::eval_cond(&rule.condition, &fp) {
+                Ok(true) => Ok(rule.action.clone()),
+                Ok(false) => continue,
                 Err(e) => Err(e),
             };
         }

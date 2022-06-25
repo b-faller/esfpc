@@ -1,6 +1,7 @@
 use serde::{Deserialize, Deserializer};
 
-use crate::{ast, parser};
+use crate::lang::ast;
+use crate::lang::parser;
 
 #[derive(Deserialize)]
 pub struct Config {

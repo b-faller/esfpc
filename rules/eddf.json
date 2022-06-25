@@ -1,14 +1,23 @@
 {
     "rules": [
         {
-            "condition": "(dep == 'EDDF') && ((sid == 'ANEKI1L') && ((rfl % 2000) == 0))",
+            "name": "Check EDDF odd RFL",
+            "condition": "dep == 'EDDF' and sidwpt in ['TOBAK', 'ANEKI', 'CINDY', 'KOMIB', 'SULUS'] and rfl % 2000 == 0",
             "action": {
                 "typ": "error",
                 "msg": "RFL"
             }
         },
         {
-            "condition": "(dep == 'EDDF') && ((sid == 'ANEKI1L') && ((arr == 'EDDM') || (arr == 'EDDN')))",
+            "name": "Check EDDF even RFL",
+            "condition": "dep == 'EDDF' and sidwpt in ['OBOKA', 'MARUN', 'SOBRA', 'ULKIG'] and rfl % 2000 != 0",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
+            "condition": "dep == 'EDDF' and sidwpt == 'ANEKI' and (arr == 'EDDM' or arr == 'EDDN')",
             "action": {
                 "typ": "error",
                 "msg": "DST"
