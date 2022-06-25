@@ -25,6 +25,30 @@
             }
         },
         {
+            "name": "CINDY destination",
+            "condition": "dep == 'EDDF' and sidwpt == 'CINDY' and 'T104' in route and !(arr == 'EDDM' or arr == 'EDDN')",
+            "action": {
+                "typ": "error",
+                "msg": "DST"
+            }
+        },
+        {
+            "name": "CINDY engine type",
+            "condition": "dep == 'EDDF' and sidwpt == 'CINDY' and 'CINDY L603' in route and !(ac_eng_type in ['P', 'T'])",
+            "action": {
+                "typ": "error",
+                "msg": "ENG"
+            }
+        },
+        {
+            "name": "CINDY route flight level",
+            "condition": "dep == 'EDDF' and sidwpt == 'CINDY' and 'CINDY L603' in route and rfl > 23000",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
             "name": "KOMIB destination",
             "condition": "dep == 'EDDF' and sidwpt == 'KOMIB' and arr != 'EDDN'",
             "action": {

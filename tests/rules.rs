@@ -70,6 +70,73 @@ fn eddf_aneki() {
 }
 
 #[test]
+fn eddf_cindy() {
+    let fp_valid = FlightPlan {
+        ac: Aircraft {
+            eng_typ: EngineType::Turboprop,
+            ..default_ac()
+        },
+        rfl: 23000,
+        sid: "CINDY4S".into(),
+        route: "CINDY Z74 HAREM T104 ROKIL".into(),
+        arr: "EDDM".into(),
+        ..default_fp()
+    };
+    let fp_invalid_rfl = FlightPlan {
+        rfl: 10000,
+        ..fp_valid.clone()
+    };
+    let fp_invalid_dst = FlightPlan {
+        arr: "LSZH".into(),
+        ..fp_valid.clone()
+    };
+    let fp_invalid_ac = FlightPlan {
+        ac: Aircraft {
+            eng_typ: EngineType::Jet,
+            ..default_ac()
+        },
+        route: "CINDY L603 HAREM DCT ROKIL".into(),
+        ..fp_valid.clone()
+    };
+    let fp_invalid_rfl_prop = FlightPlan {
+        rfl: 25000,
+        route: "CINDY L603 HAREM DCT ROKIL".into(),
+        ..fp_valid.clone()
+    };
+
+    let plugin = Plugin::start(create_plugin()).unwrap();
+
+    assert_eq!(
+        Ok(Action::new(Success, "OK".into())),
+        check_flightplan_impl(&plugin, fp_valid)
+    );
+
+    // Even RFL
+    assert_eq!(
+        Ok(Action::new(Error, "RFL".into())),
+        check_flightplan_impl(&plugin, fp_invalid_rfl)
+    );
+
+    // Invalid DST
+    assert_eq!(
+        Ok(Action::new(Error, "DST".into())),
+        check_flightplan_impl(&plugin, fp_invalid_dst)
+    );
+
+    // Invalid engine type
+    assert_eq!(
+        Ok(Action::new(Error, "ENG".into())),
+        check_flightplan_impl(&plugin, fp_invalid_ac)
+    );
+
+    // Invalid RFL with prop only route
+    assert_eq!(
+        Ok(Action::new(Error, "RFL".into())),
+        check_flightplan_impl(&plugin, fp_invalid_rfl_prop)
+    );
+}
+
+#[test]
 fn eddf_komib() {
     let fp_valid = FlightPlan {
         rule: FlightRule::Ifr,

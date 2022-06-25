@@ -97,7 +97,7 @@ pub mod ffi {
     }
 
     #[derive(Debug, Clone)]
-    pub struct Aircraft {
+    struct Aircraft {
         typ: AircraftType,
         wtc: WakeTurbulenceCategory,
         faa_equip_code: FaaEquipmentCode,
@@ -107,7 +107,7 @@ pub mod ffi {
     }
 
     #[derive(Debug, Clone)]
-    pub enum FlightRule {
+    enum FlightRule {
         Vfr,
         Ifr,
         Yankee,
@@ -192,18 +192,10 @@ impl Display for ffi::WakeTurbulenceCategory {
 
 impl ffi::FaaEquipmentCode {
     pub fn is_rnav(&self) -> bool {
-        match *self {
-            Self::Y
-            | Self::C
-            | Self::I
-            | Self::E
-            | Self::F
-            | Self::G
-            | Self::R
-            | Self::W
-            | Self::Q => true,
-            _ => false,
-        }
+        matches!(
+            *self,
+            Self::Y | Self::C | Self::I | Self::E | Self::F | Self::G | Self::R | Self::W | Self::Q
+        )
     }
 }
 
