@@ -433,4 +433,85 @@ mod tests {
             check_flightplan_impl(&plugin, fp_invalid_dst)
         );
     }
+
+    #[test]
+    fn eddf_komib() {
+        let fp_valid = ffi::FlightPlan {
+            rule: ffi::FlightRule::Ifr,
+            rfl: 35000,
+            dep: "EDDF".into(),
+            arr: "EDDN".into(),
+            sid: "KOMIB3D".into(),
+            ..Default::default()
+        };
+        let fp_invalid_rfl = ffi::FlightPlan {
+            rfl: 34000,
+            ..fp_valid.clone()
+        };
+        let fp_invalid_dst = ffi::FlightPlan {
+            arr: "EDDM".into(),
+            ..fp_valid.clone()
+        };
+
+        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
+
+        // Odd RFL
+        assert_eq!(
+            Ok(config::Action::new(Success, "OK".into())),
+            check_flightplan_impl(&plugin, fp_valid)
+        );
+
+        // Even RFL
+        assert_eq!(
+            Ok(config::Action::new(Error, "RFL".into())),
+            check_flightplan_impl(&plugin, fp_invalid_rfl)
+        );
+
+        // Wrong DST
+        assert_eq!(
+            Ok(config::Action::new(Error, "DST".into())),
+            check_flightplan_impl(&plugin, fp_invalid_dst)
+        );
+    }
+
+    #[test]
+    fn eddf_tobak() {
+        let fp_valid = ffi::FlightPlan {
+            rule: ffi::FlightRule::Ifr,
+            rfl: 35000,
+            dep: "EDDF".into(),
+            arr: "EDDN".into(),
+            sid: "TOBAK7M".into(),
+            route: "TOBAK7M/25C TOBAK N858 NOSEX DCT KLF".into(),
+            ..Default::default()
+        };
+        let fp_invalid_rfl = ffi::FlightPlan {
+            rfl: 34000,
+            ..fp_valid.clone()
+        };
+        let fp_invalid_route = ffi::FlightPlan {
+            route: "TOBAK7M/25C TOBAK Z10 NOSEX DCT KLF".into(),
+            ..fp_valid.clone()
+        };
+
+        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
+
+        // Odd RFL
+        assert_eq!(
+            Ok(config::Action::new(Success, "OK".into())),
+            check_flightplan_impl(&plugin, fp_valid)
+        );
+
+        // Even RFL
+        assert_eq!(
+            Ok(config::Action::new(Error, "RFL".into())),
+            check_flightplan_impl(&plugin, fp_invalid_rfl)
+        );
+
+        // Wrong RTE
+        assert_eq!(
+            Ok(config::Action::new(Error, "RTE".into())),
+            check_flightplan_impl(&plugin, fp_invalid_route)
+        );
+    }
 }

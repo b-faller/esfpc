@@ -1,7 +1,7 @@
 {
     "rules": [
         {
-            "name": "Check EDDF odd RFL",
+            "name": "Odd route flight level",
             "condition": "dep == 'EDDF' and sidwpt in ['TOBAK', 'ANEKI', 'CINDY', 'KOMIB', 'SULUS'] and rfl % 2000 == 0",
             "action": {
                 "typ": "error",
@@ -9,7 +9,7 @@
             }
         },
         {
-            "name": "Check EDDF even RFL",
+            "name": "Even route flight level",
             "condition": "dep == 'EDDF' and sidwpt in ['OBOKA', 'MARUN', 'SOBRA', 'ULKIG'] and rfl % 2000 != 0",
             "action": {
                 "typ": "error",
@@ -17,10 +17,27 @@
             }
         },
         {
+            "name": "ANEKI destination",
             "condition": "dep == 'EDDF' and sidwpt == 'ANEKI' and (arr == 'EDDM' or arr == 'EDDN')",
             "action": {
                 "typ": "error",
                 "msg": "DST"
+            }
+        },
+        {
+            "name": "KOMIB destination",
+            "condition": "dep == 'EDDF' and sidwpt == 'KOMIB' and arr != 'EDDN'",
+            "action": {
+                "typ": "error",
+                "msg": "DST"
+            }
+        },
+        {
+            "name": "TOBAK route",
+            "condition": "dep == 'EDDF' and sidwpt == 'TOBAK' and 'TOBAK Z10' in route",
+            "action": {
+                "typ": "error",
+                "msg": "RTE"
             }
         },
         {

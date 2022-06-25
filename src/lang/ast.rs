@@ -98,6 +98,9 @@ fn eval_inner(expr: &Expr, fp: &ffi::FlightPlan) -> Result<Expr, &'static str> {
                 (BinOp::In, item @ (Expr::Lit(_) | Expr::Array(_)), Expr::Array(exprs)) => {
                     Ok(Expr::Lit(Lit::Bool(exprs.contains(&item))))
                 }
+                (BinOp::In, Expr::Lit(Lit::Text(s1)), Expr::Lit(Lit::Text(s2))) => {
+                    Ok(Expr::Lit(Lit::Bool(s2.contains(&s1))))
+                }
                 _ => Err("Invalid binary operation"),
             }
         }
@@ -195,6 +198,24 @@ mod tests {
                 Expr::Lit(Lit::Text("ANEKI".into())),
                 Expr::Lit(Lit::Text("TOBAK".into())),
             ])),
+        );
+        assert_eq!(Ok(false), eval_cond(&expr, &ffi::FlightPlan::default()));
+    }
+
+    #[test]
+    fn in_text() {
+        let expr = Expr::Binary(
+            BinOp::In,
+            Box::new(Expr::Lit(Lit::Text("TOBAK Z10".into()))),
+            Box::new(Expr::Lit(Lit::Text(
+                "TOBAK7M/25C TOBAK Z10 NOSEX DCT KLF".into(),
+            ))),
+        );
+        assert_eq!(Ok(true), eval_cond(&expr, &ffi::FlightPlan::default()));
+        let expr = Expr::Binary(
+            BinOp::In,
+            Box::new(Expr::Lit(Lit::Text("TOBAK Z10".into()))),
+            Box::new(Expr::Lit(Lit::Text("Text".into()))),
         );
         assert_eq!(Ok(false), eval_cond(&expr, &ffi::FlightPlan::default()));
     }
