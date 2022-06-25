@@ -41,6 +41,7 @@ fn ident(ident: &str, fp: &ffi::FlightPlan) -> Result<Lit, &'static str> {
         "ac_typ" => Ok(Lit::Text(fp.ac.typ.to_string())),
         "ac_wtc" => Ok(Lit::Text(fp.ac.wtc.to_string())),
         "ac_faa_equip_code" => Ok(Lit::Text(fp.ac.faa_equip_code.to_string())),
+        "rnav" => Ok(Lit::Bool(fp.ac.faa_equip_code.is_rnav())),
         "ac_eng_typ" => Ok(Lit::Text(fp.ac.eng_typ.to_string())),
         "ac_eng_count" => Ok(Lit::Int(fp.ac.eng_count.into())),
         "ac_is_rvsm_capable" => Ok(Lit::Bool(fp.ac.is_rvsm_capable)),

@@ -1,4 +1,4 @@
-mod config;
+pub mod config;
 mod lang;
 
 use std::fmt::Display;
@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use lang::ast;
 
 #[cxx::bridge(namespace = "ffi")]
-mod ffi {
+pub mod ffi {
     #[derive(Debug, Clone)]
     enum AircraftType {
         /// ? - unknown
@@ -97,7 +97,7 @@ mod ffi {
     }
 
     #[derive(Debug, Clone)]
-    struct Aircraft {
+    pub struct Aircraft {
         typ: AircraftType,
         wtc: WakeTurbulenceCategory,
         faa_equip_code: FaaEquipmentCode,
@@ -107,7 +107,7 @@ mod ffi {
     }
 
     #[derive(Debug, Clone)]
-    enum FlightRule {
+    pub enum FlightRule {
         Vfr,
         Ifr,
         Yankee,
@@ -190,6 +190,23 @@ impl Display for ffi::WakeTurbulenceCategory {
     }
 }
 
+impl ffi::FaaEquipmentCode {
+    pub fn is_rnav(&self) -> bool {
+        match *self {
+            Self::Y
+            | Self::C
+            | Self::I
+            | Self::E
+            | Self::F
+            | Self::G
+            | Self::R
+            | Self::W
+            | Self::Q => true,
+            _ => false,
+        }
+    }
+}
+
 impl Display for ffi::FaaEquipmentCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
@@ -258,7 +275,7 @@ impl From<config::Action> for ffi::Action {
 
 static mut PLUGIN: Option<Plugin> = None;
 
-struct Plugin {
+pub struct Plugin {
     /// Our plugin holds a unique pointer to automatically deallocate the C++ plugin when this Rust counterpart is dropped.
     ///
     /// ## Warning
@@ -276,7 +293,7 @@ impl Drop for Plugin {
 }
 
 impl Plugin {
-    fn start(mut cpp_plugin: cxx::UniquePtr<ffi::EsPlugin>) -> Result<Self, std::io::Error> {
+    pub fn start(mut cpp_plugin: cxx::UniquePtr<ffi::EsPlugin>) -> Result<Self, std::io::Error> {
         let rules_dir = find_rules_dir()?;
         println!("Rules directory: {}", rules_dir.display());
 
@@ -334,7 +351,7 @@ pub fn check_flightplan(fp: ffi::FlightPlan) -> Result<ffi::Action, &'static str
     }
 }
 
-fn check_flightplan_impl(
+pub fn check_flightplan_impl(
     plugin: &Plugin,
     fp: ffi::FlightPlan,
 ) -> Result<config::Action, &'static str> {
@@ -387,131 +404,4 @@ fn plugin_init(plugin_instance: *mut *mut ffi::CPlugIn) {
 #[export_name = "?EuroScopePlugInExit@@YAXXZ"]
 fn plugin_exit() {
     unsafe { PLUGIN = None };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use config::ActionType::*;
-
-    #[test]
-    fn eddf_aneki() {
-        let fp_valid = ffi::FlightPlan {
-            rule: ffi::FlightRule::Ifr,
-            rfl: 35000,
-            dep: "EDDF".into(),
-            arr: "EDDS".into(),
-            sid: "ANEKI1L".into(),
-            ..Default::default()
-        };
-        let fp_invalid_rfl = ffi::FlightPlan {
-            rfl: 34000,
-            ..fp_valid.clone()
-        };
-        let fp_invalid_dst = ffi::FlightPlan {
-            arr: "EDDM".into(),
-            ..fp_valid.clone()
-        };
-
-        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
-
-        // Odd RFL
-        assert_eq!(
-            Ok(config::Action::new(Success, "OK".into())),
-            check_flightplan_impl(&plugin, fp_valid)
-        );
-
-        // Even RFL
-        assert_eq!(
-            Ok(config::Action::new(Error, "RFL".into())),
-            check_flightplan_impl(&plugin, fp_invalid_rfl)
-        );
-
-        // Wrong DST
-        assert_eq!(
-            Ok(config::Action::new(Error, "DST".into())),
-            check_flightplan_impl(&plugin, fp_invalid_dst)
-        );
-    }
-
-    #[test]
-    fn eddf_komib() {
-        let fp_valid = ffi::FlightPlan {
-            rule: ffi::FlightRule::Ifr,
-            rfl: 35000,
-            dep: "EDDF".into(),
-            arr: "EDDN".into(),
-            sid: "KOMIB3D".into(),
-            ..Default::default()
-        };
-        let fp_invalid_rfl = ffi::FlightPlan {
-            rfl: 34000,
-            ..fp_valid.clone()
-        };
-        let fp_invalid_dst = ffi::FlightPlan {
-            arr: "EDDM".into(),
-            ..fp_valid.clone()
-        };
-
-        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
-
-        // Odd RFL
-        assert_eq!(
-            Ok(config::Action::new(Success, "OK".into())),
-            check_flightplan_impl(&plugin, fp_valid)
-        );
-
-        // Even RFL
-        assert_eq!(
-            Ok(config::Action::new(Error, "RFL".into())),
-            check_flightplan_impl(&plugin, fp_invalid_rfl)
-        );
-
-        // Wrong DST
-        assert_eq!(
-            Ok(config::Action::new(Error, "DST".into())),
-            check_flightplan_impl(&plugin, fp_invalid_dst)
-        );
-    }
-
-    #[test]
-    fn eddf_tobak() {
-        let fp_valid = ffi::FlightPlan {
-            rule: ffi::FlightRule::Ifr,
-            rfl: 35000,
-            dep: "EDDF".into(),
-            arr: "EDDN".into(),
-            sid: "TOBAK7M".into(),
-            route: "TOBAK7M/25C TOBAK N858 NOSEX DCT KLF".into(),
-            ..Default::default()
-        };
-        let fp_invalid_rfl = ffi::FlightPlan {
-            rfl: 34000,
-            ..fp_valid.clone()
-        };
-        let fp_invalid_route = ffi::FlightPlan {
-            route: "TOBAK7M/25C TOBAK Z10 NOSEX DCT KLF".into(),
-            ..fp_valid.clone()
-        };
-
-        let plugin = Plugin::start(ffi::create_plugin()).unwrap();
-
-        // Odd RFL
-        assert_eq!(
-            Ok(config::Action::new(Success, "OK".into())),
-            check_flightplan_impl(&plugin, fp_valid)
-        );
-
-        // Even RFL
-        assert_eq!(
-            Ok(config::Action::new(Error, "RFL".into())),
-            check_flightplan_impl(&plugin, fp_invalid_rfl)
-        );
-
-        // Wrong RTE
-        assert_eq!(
-            Ok(config::Action::new(Error, "RTE".into())),
-            check_flightplan_impl(&plugin, fp_invalid_route)
-        );
-    }
 }

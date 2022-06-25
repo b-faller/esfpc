@@ -41,6 +41,22 @@
             }
         },
         {
+            "name": "Non-RNAV SIDs max route flight level",
+            "condition": "dep == 'EDDF' and sidwpt in ['MTR', 'RID', 'TAU'] and rfl > 9000",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
+            "name": "Non-RNAV SIDs equipment code",
+            "condition": "dep == 'EDDF' and sidwpt in ['MTR', 'RID', 'TAU'] and rnav",
+            "action": {
+                "typ": "error",
+                "msg": "RNV"
+            }
+        },
+        {
             "condition": "dep == 'EDDF'",
             "action": {
                 "typ": "success",
