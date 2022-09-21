@@ -1,0 +1,44 @@
+{
+    "rules": [
+        {
+            "name": "Odd route flight level",
+            "condition": "dep == 'EDDS' and sidwpt in ['DKB', 'ABTAL', 'KUNOD', 'SUL', 'TEDGO', 'STG'] and rfl % 2000 == 0",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
+            "name": "Even route flight level",
+            "condition": "dep == 'EDDS' and sidwpt in ['KRH', 'VESID', 'TAGIK', 'ETASA', 'OKIBA', 'GEBNO'] and rfl % 2000 != 0",
+            "action": {
+                "typ": "error",
+                "msg": "RFL"
+            }
+        },
+        {
+            "name": "KRH destination",
+            "condition": "dep == 'EDDS' and sidwpt == 'KRH' and !(arr == 'EDDR' or arr == 'EDRZ' or arr == 'EDSB' or arr == 'ETAR')",
+            "action": {
+                "typ":"error",
+                "msg":"DST"
+            }
+        },
+        {
+            "name": "KRH route flight level",
+            "condition": "dep == 'EDDS' and sidwpt == 'KRH' and rfl > 85000",
+            "action": {
+                "typ":"error",
+                "msg":"RFL"
+            }
+        },
+        {
+            "name": "TAGIK route restrictions",
+            "condition":"dep == 'EDDS' and sidwpt == 'TAGIK' and !('ABUMO' or 'ASKIK' in route)",
+            "action": {
+                "typ":"error",
+                "msg":"RTE"
+            }
+        }
+    ]
+}
